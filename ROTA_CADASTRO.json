@@ -1,0 +1,235 @@
+// =========================================================================
+// ROTA DE CADASTRO - REQUISIÇÃO POST
+// =========================================================================
+
+// URL: http://localhost:3000/auth/cadastro
+// MÉTODO: POST
+// CONTENT-TYPE: application/json
+
+// =========================================================================
+// EXEMPLO 1: CADASTRO COMPLETO COM TODAS AS PERMISSÕES
+// =========================================================================
+{
+  "codigo": "USR001",
+  "nome": "João Silva",
+  "email": "joao.silva@empresa.com",
+  "senha": "senha123",
+  "nivel": 2,
+  "bloqueado": false,
+  "alteraPercentualPrestador": true,
+  "alteraLimiteUsuarios": true,
+  "efetuaCancelamentoBaixa": false,
+  "permiteExclusaoTransacoes": false,
+  "permiteAlteracaoSituacao": true,
+  "permiteEscolherLocalBaixa": false
+}
+
+// =========================================================================
+// EXEMPLO 2: CADASTRO COM PERMISSÕES MÍNIMAS
+// =========================================================================
+{
+  "codigo": "USR002",
+  "nome": "Maria Santos",
+  "email": "maria.santos@empresa.com",
+  "senha": "senha456",
+  "nivel": 1,
+  "bloqueado": false,
+  "alteraPercentualPrestador": false,
+  "alteraLimiteUsuarios": false,
+  "efetuaCancelamentoBaixa": false,
+  "permiteExclusaoTransacoes": false,
+  "permiteAlteracaoSituacao": false,
+  "permiteEscolherLocalBaixa": false
+}
+
+// =========================================================================
+// EXEMPLO 3: CADASTRO COM TODAS AS PERMISSÕES HABILITADAS (ADMIN)
+// =========================================================================
+{
+  "codigo": "ADM001",
+  "nome": "Administrador Sistema",
+  "email": "admin@empresa.com",
+  "senha": "admin123",
+  "nivel": 5,
+  "bloqueado": false,
+  "alteraPercentualPrestador": true,
+  "alteraLimiteUsuarios": true,
+  "efetuaCancelamentoBaixa": true,
+  "permiteExclusaoTransacoes": true,
+  "permiteAlteracaoSituacao": true,
+  "permiteEscolherLocalBaixa": true
+}
+
+// =========================================================================
+// EXEMPLO 4: CADASTRO BÁSICO (APENAS OBRIGATÓRIOS)
+// =========================================================================
+{
+  "nome": "Pedro Costa",
+  "email": "pedro.costa@empresa.com",
+  "senha": "senha789"
+}
+
+// =========================================================================
+// EXEMPLO 5: USUÁRIO GERENCIADOR
+// =========================================================================
+{
+  "codigo": "USR003",
+  "nome": "Carlos Mendes",
+  "email": "carlos.mendes@empresa.com",
+  "senha": "senha999",
+  "nivel": 3,
+  "bloqueado": false,
+  "alteraPercentualPrestador": true,
+  "alteraLimiteUsuarios": true,
+  "efetuaCancelamentoBaixa": true,
+  "permiteExclusaoTransacoes": false,
+  "permiteAlteracaoSituacao": true,
+  "permiteEscolherLocalBaixa": true
+}
+
+// =========================================================================
+// EXEMPLO 6: USUÁRIO FINANCEIRO
+// =========================================================================
+{
+  "codigo": "USR004",
+  "nome": "Fernanda Oliveira",
+  "email": "fernanda.oliveira@empresa.com",
+  "senha": "senha111",
+  "nivel": 2,
+  "bloqueado": false,
+  "alteraPercentualPrestador": true,
+  "alteraLimiteUsuarios": false,
+  "efetuaCancelamentoBaixa": true,
+  "permiteExclusaoTransacoes": true,
+  "permiteAlteracaoSituacao": true,
+  "permiteEscolherLocalBaixa": false
+}
+
+// =========================================================================
+// EXEMPLO 7: USUÁRIO BLOQUEADO NA CRIAÇÃO
+// =========================================================================
+{
+  "codigo": "USR005",
+  "nome": "Teste Bloqueado",
+  "email": "teste.bloqueado@empresa.com",
+  "senha": "senha222",
+  "nivel": 1,
+  "bloqueado": true,
+  "alteraPercentualPrestador": false,
+  "alteraLimiteUsuarios": false,
+  "efetuaCancelamentoBaixa": false,
+  "permiteExclusaoTransacoes": false,
+  "permiteAlteracaoSituacao": false,
+  "permiteEscolherLocalBaixa": false
+}
+
+// =========================================================================
+// RESPOSTA DE SUCESSO (Status 201)
+// =========================================================================
+{
+  "sucesso": true,
+  "mensagem": "Usuário cadastrado com sucesso!",
+  "usuario": {
+    "id": 1,
+    "codigo": "USR001",
+    "nome": "João Silva",
+    "email": "joao.silva@empresa.com",
+    "nivel": 2,
+    "bloqueado": false
+  }
+}
+
+// =========================================================================
+// RESPOSTA DE ERRO - EMAIL JÁ EXISTE (Status 400)
+// =========================================================================
+{
+  "sucesso": false,
+  "mensagem": "Usuário com este email já existe"
+}
+
+// =========================================================================
+// RESPOSTA DE ERRO - CAMPOS OBRIGATÓRIOS FALTANDO (Status 400)
+// =========================================================================
+{
+  "sucesso": false,
+  "mensagem": "Nome, email e senha são obrigatórios"
+}
+
+// =========================================================================
+// RESPOSTA DE ERRO - EMAIL INVÁLIDO (Status 400)
+// =========================================================================
+{
+  "sucesso": false,
+  "mensagem": "Email inválido"
+}
+
+// =========================================================================
+// LEGENDA DOS CAMPOS
+// =========================================================================
+
+CAMPOS OBRIGATÓRIOS:
+  - nome: string (máximo 100 caracteres)
+  - email: string (formato válido com @)
+  - senha: string (máximo 255 caracteres)
+
+CAMPOS OPCIONAIS:
+  - codigo: string (identificador único do usuário, máximo 50 caracteres)
+  - nivel: número inteiro (1-5, padrão: 1)
+  - bloqueado: booleano (true/false, padrão: false)
+  
+PERMISSÕES (todas booleanas, padrão: false):
+  - alteraPercentualPrestador: permite alterar percentual de prestador
+  - alteraLimiteUsuarios: permite alterar limite dos usuários
+  - efetuaCancelamentoBaixa: permite efetuar cancelamento de baixa
+  - permiteExclusaoTransacoes: permite exclusão de transações
+  - permiteAlteracaoSituacao: permite alteração de situação/limite de alimentação
+  - permiteEscolherLocalBaixa: permite escolher local de baixa
+
+// =========================================================================
+// COMO TESTAR COM CURL (Terminal)
+// =========================================================================
+
+curl -X POST http://localhost:3000/auth/cadastro \
+  -H "Content-Type: application/json" \
+  -d '{
+    "codigo": "USR001",
+    "nome": "João Silva",
+    "email": "joao.silva@empresa.com",
+    "senha": "senha123",
+    "nivel": 2,
+    "bloqueado": false,
+    "alteraPercentualPrestador": true,
+    "alteraLimiteUsuarios": true,
+    "efetuaCancelamentoBaixa": false,
+    "permiteExclusaoTransacoes": false,
+    "permiteAlteracaoSituacao": true,
+    "permiteEscolherLocalBaixa": false
+  }'
+
+// =========================================================================
+// COMO TESTAR COM JAVASCRIPT/FETCH
+// =========================================================================
+
+fetch('http://localhost:3000/auth/cadastro', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    codigo: "USR001",
+    nome: "João Silva",
+    email: "joao.silva@empresa.com",
+    senha: "senha123",
+    nivel: 2,
+    bloqueado: false,
+    alteraPercentualPrestador: true,
+    alteraLimiteUsuarios: true,
+    efetuaCancelamentoBaixa: false,
+    permiteExclusaoTransacoes: false,
+    permiteAlteracaoSituacao: true,
+    permiteEscolherLocalBaixa: false
+  })
+})
+.then(response => response.json())
+.then(data => console.log(data))
+.catch(error => console.error('Erro:', error));
