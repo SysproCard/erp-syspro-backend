@@ -9,7 +9,21 @@ async function criarTabelas() {
     
     console.log('\n📊 Criando tabelas no banco de dados...\n');
     
-    // SQL para criar a tabela de usuários
+    // SQL para criar a tabela de NÍVEIS (hierarquia de acesso)
+    const sqlNiveis = `
+      IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'niveis')
+      BEGIN
+        CREATE TABLE niveis (
+          id INT PRIMARY KEY IDENTITY(1,1),
+          nome VARCHAR(50) NOT NULL UNIQUE,
+          descricao VARCHAR(255),
+          ativo BIT DEFAULT 1,
+          dataCriacao DATETIME DEFAULT GETDATE()
+        );
+      END
+    `;
+    
+    // SQL para criar a tabela de usuários (REFATORADA - sem codigo)
     const sqlUsuarios = `
       IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'usuarios')
       BEGIN
@@ -18,71 +32,63 @@ async function criarTabelas() {
           nome VARCHAR(255) NOT NULL,
           email VARCHAR(255) NOT NULL UNIQUE,
           senha VARCHAR(255) NOT NULL,
+          nivelId INT NOT NULL,
+          bloqueado BIT DEFAULT 0,
           dataCriacao DATETIME DEFAULT GETDATE(),
-          dataAtualizacao DATETIME DEFAULT GETDATE()
+          dataAtualizacao DATETIME DEFAULT GETDATE(),
+          FOREIGN KEY (nivelId) REFERENCES niveis(id)
         );
       END
     `;
     
-    // SQL para criar a tabela de módulos
-    const sqlModulos = `
-      IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'modulos')
+    // SQL para criar a tabela de MENUS
+    const sqlMenus = `
+      IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'menus')
       BEGIN
-        CREATE TABLE modulos (
+        CREATE TABLE menus (
           id INT PRIMARY KEY IDENTITY(1,1),
-          nome VARCHAR(100) NOT NULL UNIQUE,
-          descricao VARCHAR(255),
+          titulo VARCHAR(100) NOT NULL,
+          rota VARCHAR(255),
+          icon VARCHAR(50),
+          ordem INT DEFAULT 0,
           ativo BIT DEFAULT 1,
           dataCriacao DATETIME DEFAULT GETDATE()
         );
       END
     `;
     
-    // SQL para criar a tabela de permissões
-    const sqlPermissoes = `
-      IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'permissoes')
+    // SQL para criar a tabela de PERMISSÕES DE MENUS (por nível)
+    const sqlMenuPermissoes = `
+      IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'menu_permissoes')
       BEGIN
-        CREATE TABLE permissoes (
+        CREATE TABLE menu_permissoes (
           id INT PRIMARY KEY IDENTITY(1,1),
-          moduloId INT,
-          nome VARCHAR(100) NOT NULL,
-          descricao VARCHAR(255),
-          chave VARCHAR(100) NOT NULL UNIQUE,
-          ativo BIT DEFAULT 1,
+          menuId INT NOT NULL,
+          nivelId INT NOT NULL,
+          pode_ver BIT DEFAULT 1,
+          pode_criar BIT DEFAULT 0,
+          pode_editar BIT DEFAULT 0,
+          pode_deletar BIT DEFAULT 0,
           dataCriacao DATETIME DEFAULT GETDATE(),
-          FOREIGN KEY (moduloId) REFERENCES modulos(id)
-        );
-      END
-    `;
-    
-    // SQL para criar a tabela de associação usuário-permissões
-    const sqlUsuarioPermissoes = `
-      IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'usuario_permissoes')
-      BEGIN
-        CREATE TABLE usuario_permissoes (
-          id INT PRIMARY KEY IDENTITY(1,1),
-          usuarioId INT NOT NULL,
-          permissaoId INT NOT NULL,
-          dataCriacao DATETIME DEFAULT GETDATE(),
-          FOREIGN KEY (usuarioId) REFERENCES usuarios(id) ON DELETE CASCADE,
-          FOREIGN KEY (permissaoId) REFERENCES permissoes(id) ON DELETE CASCADE,
-          UNIQUE(usuarioId, permissaoId)
+          FOREIGN KEY (menuId) REFERENCES menus(id) ON DELETE CASCADE,
+          FOREIGN KEY (nivelId) REFERENCES niveis(id) ON DELETE CASCADE,
+          UNIQUE(menuId, nivelId)
         );
       END
     `;
     
     // Executar a criação de todas as tabelas
+    await pool.request().query(sqlNiveis);
+    console.log('✓ Tabela "niveis" criada/verificada com sucesso!');
+    
     await pool.request().query(sqlUsuarios);
     console.log('✓ Tabela "usuarios" criada/verificada com sucesso!');
     
-    await pool.request().query(sqlModulos);
-    console.log('✓ Tabela "modulos" criada/verificada com sucesso!');
+    await pool.request().query(sqlMenus);
+    console.log('✓ Tabela "menus" criada/verificada com sucesso!');
     
-    await pool.request().query(sqlPermissoes);
-    console.log('✓ Tabela "permissoes" criada/verificada com sucesso!');
-    
-    await pool.request().query(sqlUsuarioPermissoes);
-    console.log('✓ Tabela "usuario_permissoes" criada/verificada com sucesso!');
+    await pool.request().query(sqlMenuPermissoes);
+    console.log('✓ Tabela "menu_permissoes" criada/verificada com sucesso!');
     
     console.log('\n✓ Banco de dados inicializado!\n');
     

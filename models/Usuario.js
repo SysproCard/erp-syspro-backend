@@ -1,9 +1,6 @@
 // Importar pool e sql do banco de dados
 const { pool, sql } = require('../config/database');
 
-// Importar classe de Permissão
-const Permissao = require('./Permissao');
-
 // Classe Usuario para gerenciar os dados dos usuários no SQL Server
 class Usuario {
   
@@ -12,11 +9,10 @@ class Usuario {
     try {
       // Executar a query para buscar todos os usuários
       const result = await pool.request()
-        .query(`SELECT id, codigo, nome, email, nivel, bloqueado, 
-                alteraPercentualPrestador, alteraLimiteUsuarios, 
-                efetuaCancelamentoBaixa, permiteExclusaoTransacoes, 
-                permiteAlteracaoSituacao, permiteEscolherLocalBaixa, 
-                dataCriacao, dataAtualizacao FROM usuarios`);
+        .query(`SELECT u.id, u.nome, u.email, u.nivelId, n.nome as nivelNome, 
+                u.bloqueado, u.dataCriacao, u.dataAtualizacao 
+                FROM usuarios u
+                LEFT JOIN niveis n ON u.nivelId = n.id`);
       
       // Retornar a lista de usuários
       return result.recordset;
@@ -32,11 +28,11 @@ class Usuario {
       // Executar a query para buscar usuário pelo email
       const result = await pool.request()
         .input('email', sql.VarChar, email)
-        .query(`SELECT id, codigo, nome, email, senha, nivel, bloqueado,
-                alteraPercentualPrestador, alteraLimiteUsuarios, 
-                efetuaCancelamentoBaixa, permiteExclusaoTransacoes, 
-                permiteAlteracaoSituacao, permiteEscolherLocalBaixa, 
-                dataCriacao, dataAtualizacao FROM usuarios WHERE email = @email`);
+        .query(`SELECT u.id, u.nome, u.email, u.senha, u.nivelId, n.nome as nivelNome,
+                u.bloqueado, u.dataCriacao, u.dataAtualizacao 
+                FROM usuarios u
+                LEFT JOIN niveis n ON u.nivelId = n.id
+                WHERE u.email = @email`);
       
       // Retornar o primeiro usuário encontrado ou null
       return result.recordset.length > 0 ? result.recordset[0] : null;
@@ -51,11 +47,11 @@ class Usuario {
     try {
       const result = await pool.request()
         .input('id', sql.Int, id)
-        .query(`SELECT id, codigo, nome, email, nivel, bloqueado,
-                alteraPercentualPrestador, alteraLimiteUsuarios, 
-                efetuaCancelamentoBaixa, permiteExclusaoTransacoes, 
-                permiteAlteracaoSituacao, permiteEscolherLocalBaixa, 
-                dataCriacao, dataAtualizacao FROM usuarios WHERE id = @id`);
+        .query(`SELECT u.id, u.nome, u.email, u.nivelId, n.nome as nivelNome,
+                u.bloqueado, u.dataCriacao, u.dataAtualizacao 
+                FROM usuarios u
+                LEFT JOIN niveis n ON u.nivelId = n.id
+                WHERE u.id = @id`);
       
       return result.recordset.length > 0 ? result.recordset[0] : null;
     } catch (erro) {
@@ -67,14 +63,16 @@ class Usuario {
   // Método para criar/salvar um novo usuário
   static async criar(userData) {
     try {
-      const { nome, email, senha, nivel = 1, bloqueado = false,
-              alteraPercentualPrestador = false, alteraLimiteUsuarios = false,
-              efetuaCancelamentoBaixa = false, permiteExclusaoTransacoes = false,
-              permiteAlteracaoSituacao = false, permiteEscolherLocalBaixa = false } = userData;
+      const { nome, email, senha, nivelId = 5, bloqueado = false } = userData;
 
       // Validar campos obrigatórios
       if (!nome || !email || !senha) {
         throw new Error('Nome, email e senha são obrigatórios');
+      }
+
+      // Validar se nivelId é válido
+      if (!nivelId) {
+        throw new Error('Nível é obrigatório');
       }
 
       // Verificar se já existe um usuário com este email
@@ -83,69 +81,38 @@ class Usuario {
         throw new Error('Usuário com este email já existe');
       }
       
-      // Executar a query INSERT para criar novo usuário com todas as permissões
-      // O código será NULL inicialmente e será atualizado depois com o ID
+      // Executar a query INSERT para criar novo usuário
       const result = await pool.request()
         .input('nome', sql.VarChar, nome)
         .input('email', sql.VarChar, email)
         .input('senha', sql.VarChar, senha)
-        .input('nivel', sql.Int, nivel)
+        .input('nivelId', sql.Int, nivelId)
         .input('bloqueado', sql.Bit, bloqueado ? 1 : 0)
-        .input('alteraPercentualPrestador', sql.Bit, alteraPercentualPrestador ? 1 : 0)
-        .input('alteraLimiteUsuarios', sql.Bit, alteraLimiteUsuarios ? 1 : 0)
-        .input('efetuaCancelamentoBaixa', sql.Bit, efetuaCancelamentoBaixa ? 1 : 0)
-        .input('permiteExclusaoTransacoes', sql.Bit, permiteExclusaoTransacoes ? 1 : 0)
-        .input('permiteAlteracaoSituacao', sql.Bit, permiteAlteracaoSituacao ? 1 : 0)
-        .input('permiteEscolherLocalBaixa', sql.Bit, permiteEscolherLocalBaixa ? 1 : 0)
-        .query(`INSERT INTO usuarios (codigo, nome, email, senha, nivel, bloqueado, 
-                alteraPercentualPrestador, alteraLimiteUsuarios, 
-                efetuaCancelamentoBaixa, permiteExclusaoTransacoes, 
-                permiteAlteracaoSituacao, permiteEscolherLocalBaixa, dataCriacao, dataAtualizacao) 
-                VALUES (NULL, @nome, @email, @senha, @nivel, @bloqueado, 
-                @alteraPercentualPrestador, @alteraLimiteUsuarios, 
-                @efetuaCancelamentoBaixa, @permiteExclusaoTransacoes, 
-                @permiteAlteracaoSituacao, @permiteEscolherLocalBaixa, GETDATE(), GETDATE()); 
+        .query(`INSERT INTO usuarios (nome, email, senha, nivelId, bloqueado, dataCriacao, dataAtualizacao) 
+                VALUES (@nome, @email, @senha, @nivelId, @bloqueado, GETDATE(), GETDATE()); 
                 SELECT SCOPE_IDENTITY() as id`);
       
       // Obter o ID do novo usuário
       const novoId = result.recordset[0].id;
       
-      // Atualizar o código para ser igual ao ID (sequencial)
-      await pool.request()
-        .input('id', sql.Int, novoId)
-        .input('codigo', sql.VarChar, novoId.toString())
-        .query('UPDATE usuarios SET codigo = @codigo WHERE id = @id');
+      // Retornar o novo usuário criado
+      const novoUsuario = await this.obterPorId(novoId);
+      return novoUsuario;
       
-      // Retornar o novo usuário criado com código = ID
-      return {
-        id: novoId,
-        codigo: novoId.toString(),
-        nome: nome,
-        email: email,
-        nivel: nivel,
-        bloqueado: bloqueado
-      };
     } catch (erro) {
       throw erro;
     }
   }
 
-  // Método para atualizar um usuário e suas permissões
+  // Método para atualizar um usuário
   static async atualizar(id, userData) {
     try {
-      const { codigo, nome, email, nivel, bloqueado,
-              alteraPercentualPrestador, alteraLimiteUsuarios,
-              efetuaCancelamentoBaixa, permiteExclusaoTransacoes,
-              permiteAlteracaoSituacao, permiteEscolherLocalBaixa, senha } = userData;
+      const { nome, email, nivelId, bloqueado, senha } = userData;
 
       // Montar dinamicamente a query baseado nos campos fornecidos
       let setClauses = [];
       const request = pool.request().input('id', sql.Int, id);
       
-      if (codigo !== undefined) {
-        setClauses.push('codigo = @codigo');
-        request.input('codigo', sql.VarChar, codigo || null);
-      }
       if (nome !== undefined) {
         setClauses.push('nome = @nome');
         request.input('nome', sql.VarChar, nome);
@@ -158,37 +125,13 @@ class Usuario {
         setClauses.push('senha = @senha');
         request.input('senha', sql.VarChar, senha);
       }
-      if (nivel !== undefined) {
-        setClauses.push('nivel = @nivel');
-        request.input('nivel', sql.Int, nivel);
+      if (nivelId !== undefined) {
+        setClauses.push('nivelId = @nivelId');
+        request.input('nivelId', sql.Int, nivelId);
       }
       if (bloqueado !== undefined) {
         setClauses.push('bloqueado = @bloqueado');
         request.input('bloqueado', sql.Bit, bloqueado ? 1 : 0);
-      }
-      if (alteraPercentualPrestador !== undefined) {
-        setClauses.push('alteraPercentualPrestador = @alteraPercentualPrestador');
-        request.input('alteraPercentualPrestador', sql.Bit, alteraPercentualPrestador ? 1 : 0);
-      }
-      if (alteraLimiteUsuarios !== undefined) {
-        setClauses.push('alteraLimiteUsuarios = @alteraLimiteUsuarios');
-        request.input('alteraLimiteUsuarios', sql.Bit, alteraLimiteUsuarios ? 1 : 0);
-      }
-      if (efetuaCancelamentoBaixa !== undefined) {
-        setClauses.push('efetuaCancelamentoBaixa = @efetuaCancelamentoBaixa');
-        request.input('efetuaCancelamentoBaixa', sql.Bit, efetuaCancelamentoBaixa ? 1 : 0);
-      }
-      if (permiteExclusaoTransacoes !== undefined) {
-        setClauses.push('permiteExclusaoTransacoes = @permiteExclusaoTransacoes');
-        request.input('permiteExclusaoTransacoes', sql.Bit, permiteExclusaoTransacoes ? 1 : 0);
-      }
-      if (permiteAlteracaoSituacao !== undefined) {
-        setClauses.push('permiteAlteracaoSituacao = @permiteAlteracaoSituacao');
-        request.input('permiteAlteracaoSituacao', sql.Bit, permiteAlteracaoSituacao ? 1 : 0);
-      }
-      if (permiteEscolherLocalBaixa !== undefined) {
-        setClauses.push('permiteEscolherLocalBaixa = @permiteEscolherLocalBaixa');
-        request.input('permiteEscolherLocalBaixa', sql.Bit, permiteEscolherLocalBaixa ? 1 : 0);
       }
 
       // Sempre atualizar a data de atualização
@@ -229,20 +172,16 @@ class Usuario {
       
       // Comparar a senha (em produção, usar bcrypt)
       if (usuario.senha === senha) {
-        // Obter permissões do usuário agrupadas por módulo
-        const permissoes = await Permissao.obterPorUsuarioAgrupado(usuario.id);
-        
-        // Retornar os dados públicos do usuário com as permissões
+        // Retornar os dados públicos do usuário com seu nível
         return {
           id: usuario.id,
-          codigo: usuario.codigo,
           nome: usuario.nome,
           email: usuario.email,
-          nivel: usuario.nivel,
+          nivelId: usuario.nivelId,
+          nivelNome: usuario.nivelNome,
           bloqueado: usuario.bloqueado,
           dataCriacao: usuario.dataCriacao,
-          dataAtualizacao: usuario.dataAtualizacao,
-          permissoes: permissoes
+          dataAtualizacao: usuario.dataAtualizacao
         };
       }
       

@@ -7,14 +7,8 @@ const usuarioController = {
   // Controlador para CADASTRO de novo usuário
   cadastro: async (req, res) => {
     try {
-      // Extrair todos os dados do corpo da requisição
-      // NOTA: O código é gerado automaticamente como cópia do ID
-      const {
-        nome, email, senha, nivel,
-        bloqueado, alteraPercentualPrestador, alteraLimiteUsuarios,
-        efetuaCancelamentoBaixa, permiteExclusaoTransacoes,
-        permiteAlteracaoSituacao, permiteEscolherLocalBaixa
-      } = req.body;
+      // Extrair dados do corpo da requisição
+      const { nome, email, senha, nivelId, bloqueado } = req.body;
       
       // Validar se todos os campos obrigatórios foram preenchidos
       if (!nome || !email || !senha) {
@@ -31,21 +25,22 @@ const usuarioController = {
           mensagem: 'Email inválido'
         });
       }
+
+      // Validar se nivelId foi fornecido
+      if (!nivelId) {
+        return res.status(400).json({
+          sucesso: false,
+          mensagem: 'Nível é obrigatório'
+        });
+      }
       
-      // Tentar criar o novo usuário com todos os dados usando o modelo
-      // O código será gerado automaticamente como cópia do ID
+      // Tentar criar o novo usuário
       const novoUsuario = await Usuario.criar({
         nome,
         email,
         senha,
-        nivel: nivel || 1,
-        bloqueado: bloqueado || false,
-        alteraPercentualPrestador: alteraPercentualPrestador || false,
-        alteraLimiteUsuarios: alteraLimiteUsuarios || false,
-        efetuaCancelamentoBaixa: efetuaCancelamentoBaixa || false,
-        permiteExclusaoTransacoes: permiteExclusaoTransacoes || false,
-        permiteAlteracaoSituacao: permiteAlteracaoSituacao || false,
-        permiteEscolherLocalBaixa: permiteEscolherLocalBaixa || false
+        nivelId,
+        bloqueado: bloqueado || false
       });
       
       // Se conseguir criar, retornar sucesso
@@ -54,10 +49,10 @@ const usuarioController = {
         mensagem: 'Usuário cadastrado com sucesso!',
         usuario: {
           id: novoUsuario.id,
-          codigo: novoUsuario.codigo,
           nome: novoUsuario.nome,
           email: novoUsuario.email,
-          nivel: novoUsuario.nivel,
+          nivelId: novoUsuario.nivelId,
+          nivelNome: novoUsuario.nivelNome,
           bloqueado: novoUsuario.bloqueado
         }
       });
@@ -133,16 +128,11 @@ const usuarioController = {
     }
   },
 
-  // Controlador para ATUALIZAR um usuário e suas permissões
+  // Controlador para ATUALIZAR um usuário
   atualizar: async (req, res) => {
     try {
       const { id } = req.params;
-      const {
-        codigo, nome, email, senha, nivel,
-        bloqueado, alteraPercentualPrestador, alteraLimiteUsuarios,
-        efetuaCancelamentoBaixa, permiteExclusaoTransacoes,
-        permiteAlteracaoSituacao, permiteEscolherLocalBaixa
-      } = req.body;
+      const { nome, email, senha, nivelId, bloqueado } = req.body;
 
       // Validar se o ID foi fornecido
       if (!id) {
@@ -162,18 +152,11 @@ const usuarioController = {
 
       // Tentar atualizar o usuário
       const usuarioAtualizado = await Usuario.atualizar(id, {
-        codigo,
         nome,
         email,
         senha,
-        nivel,
-        bloqueado,
-        alteraPercentualPrestador,
-        alteraLimiteUsuarios,
-        efetuaCancelamentoBaixa,
-        permiteExclusaoTransacoes,
-        permiteAlteracaoSituacao,
-        permiteEscolherLocalBaixa
+        nivelId,
+        bloqueado
       });
 
       if (!usuarioAtualizado) {
