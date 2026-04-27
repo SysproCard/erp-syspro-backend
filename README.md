@@ -69,16 +69,3 @@ Body:
 ### 3. Listar Todos os Usuários
 **GET** `/auth/usuarios`
 
-## Testando a API
-
-Use ferramentas como Postman, Insomnia ou Thunder Client.
-
-## Notas
-
-⚠️ Este é um projeto básico de estudo - para produção, implemente:
-- Hash de senhas com bcrypt
-- Banco de dados real (MongoDB, PostgreSQL, etc)
-- JWT para autenticação
-- Validação avançada
-- CORS
-- Variáveis de ambiente
